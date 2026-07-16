@@ -1,5 +1,8 @@
 # AgenTee — allover.art MCP server
 
+[![smithery badge](https://smithery.ai/badge/we-6lza/AgenTee)](https://smithery.ai/servers/we-6lza/AgenTee)
+
+
 **The first print-on-demand store your AI agent can run for you.**
 
 Give your agent a personal token and it can search 30,000+ all-over-print **100% cotton** tees, build and edit your cart, apply promo codes, fill in shipping and prepare a ready-to-pay checkout. **Payment always stays with the human** — there are no payment tools, by design.
