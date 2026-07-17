@@ -2,6 +2,9 @@
 
 [![smithery badge](https://smithery.ai/badge/we-6lza/AgenTee)](https://smithery.ai/servers/we-6lza/AgenTee)
 
+![AgenTee demo — agent finds a tee, builds the cart and preps checkout](media/agentee-demo.gif)
+
+
 
 **The first print-on-demand store your AI agent can run for you.**
 
