@@ -39,6 +39,23 @@ Then ask your agent something like: *"find me a loud cotton tee with a cat under
 - Track orders after purchase
 - *Coming next:* create brand-new designs in Studio from a one-line prompt
 
+## Tools
+
+**Browse and buy**
+`search_products` · `get_product` · `list_collections` · `view_cart` · `add_to_cart` · `cart_update` · `cart_remove` · `set_cart_quantity` · `apply_promo` · `remove_promo`
+
+**Shipping and checkout**
+`get_saved_addresses` · `set_shipping_address` · `get_shipping_options` · `set_shipping_method` · `get_order_preview` · `prepare_order` · `checkout_link` · `order_status`
+
+**Design in Studio**
+`studio_options` · `studio_generate` · `studio_status` · `studio_credits` · `add_custom_to_cart`
+
+**For designers selling on allover.art**
+`designer_stats` · `designer_designs` · `designer_upload_slot` · `submit_design` · `designer_uploads` · `designer_submissions`
+
+**Preferences**
+`get_user_prefs` · `set_user_prefs`
+
 ## Safety model
 
 - No payment tools; checkout is completed by the human in the browser
@@ -48,3 +65,7 @@ Then ask your agent something like: *"find me a loud cotton tee with a cat under
 ## About allover.art
 
 We print bold all-over designs on real 100% cotton at our own factory (reactive printing — the dye bonds inside the fiber, so prints survive 60°C washes without cracking or fading). Made to order, shipped worldwide. Designers earn a flat 10% of every sale, for life: https://allover.art/become-a-designer
+
+## License
+
+MIT — see [LICENSE](LICENSE). The allover.art name, logo and the artwork shown in `media/` are not covered by it.
