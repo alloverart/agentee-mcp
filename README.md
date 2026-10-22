@@ -28,6 +28,14 @@ claude mcp add --transport http agentee https://allover.art/mcp --header "Author
 {"agentee": {"type": "http", "url": "https://allover.art/mcp", "headers": {"Authorization": "Bearer YOUR_TOKEN"}}}
 ```
 
+**Local stdio server** — the same tools for clients that only run local servers (Node 18+):
+
+```json
+{"agentee": {"command": "npx", "args": ["-y", "github:alloverart/agentee-mcp"], "env": {"AGENTEE_TOKEN": "YOUR_TOKEN"}}}
+```
+
+It lists the tools without a token; calling them needs `AGENTEE_TOKEN`.
+
 Then ask your agent something like: *"find me a loud cotton tee with a cat under $40 and get it ready to buy"*.
 
 ## What the agent can do
