@@ -1,7 +1,8 @@
 name: Release
 
-# Pushing a tag vX.Y.Z publishes a GitHub release for it. The tag has to match
-# package.json, the smoke test has to pass, and the tag message becomes the notes.
+# Pushing a tag vX.Y.Z publishes (or refreshes) the GitHub release for it. The
+# tag has to match package.json, the smoke test has to pass, and the annotated
+# tag's message becomes the release notes.
 on:
   push:
     tags: ["v*"]
@@ -14,8 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -24,7 +23,18 @@ jobs:
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
       - run: npm ci
       - run: npm test
+      - name: Notes from the annotated tag
+        # checkout leaves the tag lightweight, so fetch the tag object itself
+        run: |
+          git fetch --force origin "+refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          test "$(git cat-file -t "$GITHUB_REF_NAME")" = tag
+          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"
       - name: Publish release
-        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-from-tag --verify-tag
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"
+          else
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md" --verify-tag
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
