@@ -50,19 +50,21 @@ Then ask your agent something like: *"find me a loud cotton tee with a cat under
 ## Tools
 
 **Browse and buy**
-`search_products` · `get_product` · `list_collections` · `view_cart` · `add_to_cart` · `cart_update` · `cart_remove` · `set_cart_quantity` · `apply_promo` · `remove_promo`
+`search_products` (filters: theme, section, color, style, price) · `get_product` · `list_collections` · `view_cart` · `add_to_cart` · `update_cart_item` · `apply_promo` · `remove_promo`
 
 **Shipping and checkout**
-`get_saved_addresses` · `set_shipping_address` · `get_shipping_options` · `set_shipping_method` · `get_order_preview` · `prepare_order` · `checkout_link` · `order_status`
+`get_saved_addresses` · `set_shipping_address` · `get_shipping_options` · `set_shipping_method` · `get_order_preview` · `prepare_order` · `get_order_status`
 
 **Design in Studio**
-`studio_options` · `studio_generate` · `studio_status` · `studio_credits` · `add_custom_to_cart`
-
-**For designers selling on allover.art**
-`designer_stats` · `designer_designs` · `designer_upload_slot` · `submit_design` · `designer_uploads` · `designer_submissions`
+`get_studio_options` · `generate_custom_print` · `get_studio_status` · `get_studio_credits` · `add_custom_to_cart`
 
 **Preferences**
 `get_user_prefs` · `set_user_prefs`
+
+**For designers selling on allover.art** — listed only when the token has the designer key
+`designer_stats` · `designer_designs` · `designer_upload_slot` · `submit_design` · `designer_uploads` · `designer_submissions` · colorway sets
+
+Names from 1.0 (`cart_update`, `order_status`, `studio_*`, `set_cart_quantity`, `cart_remove`, `checkout_link`) still work, so agents with a cached tool list keep running.
 
 ## Safety model
 

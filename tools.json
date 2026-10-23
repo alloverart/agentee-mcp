@@ -1,2322 +1,1485 @@
 {
- "tools": [
-  {
-   "name": "search_products",
-   "description": "Search the allover.art catalog (one card per design). Args: query? (free text, e.g. 'cat', 'neon koi'), theme? (canonical theme like Cats/Anime/Skulls, comma-separated for several), section? (mens|womens|kids), limit? (<=48), max_price? (USD). Returns product cards with good_id, price and url.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "query": {
-      "type": "string",
-      "description": "Free-text search, e.g. 'cat' or 'neon koi'."
-     },
-     "theme": {
-      "type": "string",
-      "description": "Canonical theme filter (Cats, Anime, Skulls, ...); comma-separate several."
-     },
-     "section": {
-      "type": "string",
-      "description": "Catalog section: mens, womens or kids."
-     },
-     "limit": {
-      "type": "integer",
-      "description": "Max cards to return (default 24, max 48)."
-     },
-     "max_price": {
-      "type": "number",
-      "description": "Only items priced at or below this amount, USD."
-     }
-    }
-   },
-   "title": "Search catalog",
-   "annotations": {
-    "title": "Search catalog",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "total": {
-      "type": "integer",
-      "description": "Total catalog matches for the filters."
-     },
-     "showing": {
-      "type": "integer",
-      "description": "Number of cards returned."
-     },
-     "items": {
-      "type": "array",
-      "description": "Product cards.",
-      "items": {
-       "type": "object",
-       "properties": {
-        "good_id": {
-         "type": "integer"
-        },
-        "code": {
-         "type": "string"
-        },
-        "title": {
-         "type": "string"
-        },
-        "product": {
-         "type": "string"
-        },
-        "price": {
-         "type": "number"
-        },
-        "currency": {
-         "type": "string"
-        },
-        "theme": {
-         "type": "string"
-        },
-        "image": {
-         "type": "string"
-        },
-        "url": {
-         "type": "string",
-         "description": "Canonical product page."
+  "tools": [
+    {
+      "name": "search_products",
+      "description": "Search the allover.art catalog (one card per design). Args: query? (free text, e.g. 'cat', 'neon koi'), theme? (canonical theme like Cats/Anime/Skulls, comma-separated for several), section? (mens|womens|kids), color? (main print color), style? (tee|oversized|long_sleeve|oversized_long_sleeve — use the shopper's saved fit from get_user_prefs), limit? (<=48), max_price? (USD). Returns product cards with good_id, price and url.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Free-text search, e.g. 'cat' or 'neon koi'."
+          },
+          "theme": {
+            "type": "string",
+            "description": "Canonical theme filter (Cats, Anime, Skulls, ...); comma-separate several."
+          },
+          "section": {
+            "type": "string",
+            "description": "Catalog section: mens, womens or kids."
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "Black",
+              "Grey",
+              "White",
+              "Navy",
+              "Beige",
+              "Turquoise",
+              "Pink",
+              "Brown",
+              "Red",
+              "Purple",
+              "Olive",
+              "Blue",
+              "Green",
+              "Yellow",
+              "Orange",
+              "Burgundy",
+              "Multicolor"
+            ],
+            "description": "Main color of the print."
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "tee",
+              "oversized",
+              "long_sleeve",
+              "oversized_long_sleeve"
+            ],
+            "description": "Garment cut: tee, oversized, long_sleeve or oversized_long_sleeve."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Max cards to return (default 24, max 48)."
+          },
+          "max_price": {
+            "type": "number",
+            "description": "Only items priced at or below this amount, USD."
+          }
         }
-       }
-      }
-     }
-    }
-   }
-  },
-  {
-   "name": "get_product",
-   "description": "Full details of one product by its code: available sizes, fabrics, per-variant price, and the design 'about' text. Args: code (from search_products).",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "code": {
-      "type": "string",
-      "description": "Product code from search_products results."
-     }
-    },
-    "required": [
-     "code"
-    ]
-   },
-   "title": "Get product details",
-   "annotations": {
-    "title": "Get product details",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "good_id": {
-      "type": "integer"
-     },
-     "code": {
-      "type": "string"
-     },
-     "title": {
-      "type": "string"
-     },
-     "product": {
-      "type": "string"
-     },
-     "price": {
-      "type": "number"
-     },
-     "currency": {
-      "type": "string"
-     },
-     "theme": {
-      "type": "string"
-     },
-     "image": {
-      "type": "string"
-     },
-     "url": {
-      "type": "string"
-     },
-     "sizes": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      }
-     },
-     "fabrics": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      }
-     },
-     "variants": {
-      "type": "array",
-      "description": "Price per size+fabric combination.",
-      "items": {
-       "type": "object",
-       "properties": {
-        "size": {
-         "type": "string"
-        },
-        "fabric": {
-         "type": "string"
-        },
-        "price": {
-         "type": "number"
-        }
-       }
-      }
-     },
-     "about": {
-      "type": "string",
-      "description": "Design description text (may be null)."
-     },
-     "error": {
-      "type": "string",
-      "description": "Present when the product was not found."
-     }
-    }
-   }
-  },
-  {
-   "name": "list_collections",
-   "description": "List active curated collections (themed landing pages) with their slugs and urls. Args: limit?.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "limit": {
-      "type": "integer",
-      "description": "Max collections to return (default 50, max 100)."
-     }
-    }
-   },
-   "title": "List collections",
-   "annotations": {
-    "title": "List collections",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "collections": {
-      "type": "array",
-      "items": {
-       "type": "object",
-       "properties": {
-        "slug": {
-         "type": "string"
-        },
-        "title": {
-         "type": "string"
-        },
-        "url": {
-         "type": "string",
-         "description": "Collection landing page."
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  {
-   "name": "view_cart",
-   "description": "Show the current contents of the user's cart (the same cart they see in the browser when signed in).",
-   "inputSchema": {
-    "type": "object",
-    "properties": {}
-   },
-   "title": "View cart",
-   "annotations": {
-    "title": "View cart",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "items": {
-      "type": "array",
-      "description": "Cart lines in index order — this index is what set_cart_quantity/cart_update/cart_remove take.",
-      "items": {
-       "type": "object",
-       "properties": {
-        "good_id": {
-         "type": "integer"
-        },
-        "code": {
-         "type": "string"
-        },
-        "title": {
-         "type": "string"
-        },
-        "product": {
-         "type": "string"
-        },
-        "size": {
-         "type": "string"
-        },
-        "fabric": {
-         "type": "string"
-        },
-        "price": {
-         "type": "number"
-        },
-        "currency": {
-         "type": "string"
-        },
-        "qty": {
-         "type": "integer"
-        },
-        "custom": {
-         "type": "boolean",
-         "description": "True when the line is a user-generated custom print."
-        }
-       }
-      }
-     },
-     "subtotal": {
-      "type": "number",
-      "description": "Sum of price x qty over all lines, USD."
-     },
-     "currency": {
-      "type": "string"
-     },
-     "checkout_url": {
-      "type": "string",
-      "description": "Cart page URL for the human."
-     },
-     "error": {
-      "type": "string",
-      "description": "Present instead of a cart when the call failed (bad index, unavailable size, ...)."
-     }
-    }
-   }
-  },
-  {
-   "name": "add_to_cart",
-   "description": "Add a product to the user's cart. Args: good_id (from search/get_product), size (must be one of the product's sizes), fabric? (if the product offers a choice), qty? (default 1). Returns the updated cart.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "good_id": {
-      "type": "integer",
-      "description": "Numeric product id from search_products/get_product."
-     },
-     "size": {
-      "type": "string",
-      "description": "Size label; must be one of the product's available sizes."
-     },
-     "fabric": {
-      "type": "string",
-      "description": "Fabric label from get_product, if the product offers a choice."
-     },
-     "qty": {
-      "type": "integer",
-      "description": "Quantity to add (default 1, max 99)."
-     }
-    },
-    "required": [
-     "good_id",
-     "size"
-    ]
-   },
-   "title": "Add to cart",
-   "annotations": {
-    "title": "Add to cart",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": false,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "items": {
-      "type": "array",
-      "description": "Cart lines in index order — this index is what set_cart_quantity/cart_update/cart_remove take.",
-      "items": {
-       "type": "object",
-       "properties": {
-        "good_id": {
-         "type": "integer"
-        },
-        "code": {
-         "type": "string"
-        },
-        "title": {
-         "type": "string"
-        },
-        "product": {
-         "type": "string"
-        },
-        "size": {
-         "type": "string"
-        },
-        "fabric": {
-         "type": "string"
-        },
-        "price": {
-         "type": "number"
-        },
-        "currency": {
-         "type": "string"
-        },
-        "qty": {
-         "type": "integer"
-        },
-        "custom": {
-         "type": "boolean",
-         "description": "True when the line is a user-generated custom print."
-        }
-       }
-      }
-     },
-     "subtotal": {
-      "type": "number",
-      "description": "Sum of price x qty over all lines, USD."
-     },
-     "currency": {
-      "type": "string"
-     },
-     "checkout_url": {
-      "type": "string",
-      "description": "Cart page URL for the human."
-     },
-     "error": {
-      "type": "string",
-      "description": "Present instead of a cart when the call failed (bad index, unavailable size, ...)."
-     }
-    }
-   }
-  },
-  {
-   "name": "set_cart_quantity",
-   "description": "Change the quantity of a cart line by its index (from view_cart); qty=0 removes it. Args: index, qty.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "index": {
-      "type": "integer",
-      "description": "Zero-based cart line index from view_cart."
-     },
-     "qty": {
-      "type": "integer",
-      "description": "New quantity (0 removes the line, max 99)."
-     }
-    },
-    "required": [
-     "index",
-     "qty"
-    ]
-   },
-   "title": "Set cart quantity",
-   "annotations": {
-    "title": "Set cart quantity",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "items": {
-      "type": "array",
-      "description": "Cart lines in index order — this index is what set_cart_quantity/cart_update/cart_remove take.",
-      "items": {
-       "type": "object",
-       "properties": {
-        "good_id": {
-         "type": "integer"
-        },
-        "code": {
-         "type": "string"
-        },
-        "title": {
-         "type": "string"
-        },
-        "product": {
-         "type": "string"
-        },
-        "size": {
-         "type": "string"
-        },
-        "fabric": {
-         "type": "string"
-        },
-        "price": {
-         "type": "number"
-        },
-        "currency": {
-         "type": "string"
-        },
-        "qty": {
-         "type": "integer"
-        },
-        "custom": {
-         "type": "boolean",
-         "description": "True when the line is a user-generated custom print."
-        }
-       }
-      }
-     },
-     "subtotal": {
-      "type": "number",
-      "description": "Sum of price x qty over all lines, USD."
-     },
-     "currency": {
-      "type": "string"
-     },
-     "checkout_url": {
-      "type": "string",
-      "description": "Cart page URL for the human."
-     },
-     "error": {
-      "type": "string",
-      "description": "Present instead of a cart when the call failed (bad index, unavailable size, ...)."
-     }
-    }
-   }
-  },
-  {
-   "name": "checkout_link",
-   "description": "Get the URL where the human opens their cart to review and pay. The agent never pays — checkout is always done by the person in the browser.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {}
-   },
-   "title": "Get checkout link",
-   "annotations": {
-    "title": "Get checkout link",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "url": {
-      "type": "string",
-      "description": "Cart page for the human to review and pay."
-     },
-     "items_in_cart": {
-      "type": "integer"
-     },
-     "note": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "order_status",
-   "description": "Look up the user's recent orders (or one by number) and their fulfilment status. Args: number?, limit? (default 5).",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "number": {
-      "type": "string",
-      "description": "Exact order number to look up; omit for the most recent orders."
-     },
-     "limit": {
-      "type": "integer",
-      "description": "Max orders to return (default 5, max 20)."
-     }
-    }
-   },
-   "title": "Check order status",
-   "annotations": {
-    "title": "Check order status",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "orders": {
-      "type": "array",
-      "items": {
-       "type": "object",
-       "properties": {
-        "number": {
-         "type": "string"
-        },
-        "status": {
-         "type": "string"
-        },
-        "total": {
-         "type": "number"
-        },
-        "currency": {
-         "type": "string"
-        },
-        "created_at": {
-         "type": "string",
-         "description": "ISO 8601 timestamp."
-        },
-        "url": {
-         "type": "string",
-         "description": "Order tracking page."
-        }
-       }
-      }
-     },
-     "note": {
-      "type": "string",
-      "description": "Present when the account has no email on file."
-     }
-    }
-   }
-  },
-  {
-   "name": "cart_update",
-   "description": "Change a cart line by its index (from view_cart): set qty (0 removes), or switch size/fabric. Args: index, qty?, size?, fabric?.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "index": {
-      "type": "integer",
-      "description": "Zero-based cart line index from view_cart."
-     },
-     "qty": {
-      "type": "integer",
-      "description": "New quantity; 0 removes the line."
-     },
-     "size": {
-      "type": "string",
-      "description": "New size for this line (must be available for the product)."
-     },
-     "fabric": {
-      "type": "string",
-      "description": "New fabric for this line (must be available for the product)."
-     }
-    },
-    "required": [
-     "index"
-    ]
-   },
-   "title": "Update cart line",
-   "annotations": {
-    "title": "Update cart line",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "items": {
-      "type": "array",
-      "description": "Cart lines in index order — this index is what set_cart_quantity/cart_update/cart_remove take.",
-      "items": {
-       "type": "object",
-       "properties": {
-        "good_id": {
-         "type": "integer"
-        },
-        "code": {
-         "type": "string"
-        },
-        "title": {
-         "type": "string"
-        },
-        "product": {
-         "type": "string"
-        },
-        "size": {
-         "type": "string"
-        },
-        "fabric": {
-         "type": "string"
-        },
-        "price": {
-         "type": "number"
-        },
-        "currency": {
-         "type": "string"
-        },
-        "qty": {
-         "type": "integer"
-        },
-        "custom": {
-         "type": "boolean",
-         "description": "True when the line is a user-generated custom print."
-        }
-       }
-      }
-     },
-     "subtotal": {
-      "type": "number",
-      "description": "Sum of price x qty over all lines, USD."
-     },
-     "currency": {
-      "type": "string"
-     },
-     "checkout_url": {
-      "type": "string",
-      "description": "Cart page URL for the human."
-     },
-     "error": {
-      "type": "string",
-      "description": "Present instead of a cart when the call failed (bad index, unavailable size, ...)."
-     }
-    }
-   }
-  },
-  {
-   "name": "cart_remove",
-   "description": "Remove a cart line by its index (from view_cart). Args: index.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "index": {
-      "type": "integer",
-      "description": "Zero-based cart line index from view_cart."
-     }
-    },
-    "required": [
-     "index"
-    ]
-   },
-   "title": "Remove cart line",
-   "annotations": {
-    "title": "Remove cart line",
-    "readOnlyHint": false,
-    "destructiveHint": true,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "items": {
-      "type": "array",
-      "description": "Cart lines in index order — this index is what set_cart_quantity/cart_update/cart_remove take.",
-      "items": {
-       "type": "object",
-       "properties": {
-        "good_id": {
-         "type": "integer"
-        },
-        "code": {
-         "type": "string"
-        },
-        "title": {
-         "type": "string"
-        },
-        "product": {
-         "type": "string"
-        },
-        "size": {
-         "type": "string"
-        },
-        "fabric": {
-         "type": "string"
-        },
-        "price": {
-         "type": "number"
-        },
-        "currency": {
-         "type": "string"
-        },
-        "qty": {
-         "type": "integer"
-        },
-        "custom": {
-         "type": "boolean",
-         "description": "True when the line is a user-generated custom print."
-        }
-       }
-      }
-     },
-     "subtotal": {
-      "type": "number",
-      "description": "Sum of price x qty over all lines, USD."
-     },
-     "currency": {
-      "type": "string"
-     },
-     "checkout_url": {
-      "type": "string",
-      "description": "Cart page URL for the human."
-     },
-     "error": {
-      "type": "string",
-      "description": "Present instead of a cart when the call failed (bad index, unavailable size, ...)."
-     }
-    }
-   }
-  },
-  {
-   "name": "apply_promo",
-   "description": "Validate and apply a promo code to the cart (server-checked). Returns the new discount/shipping/total, or applied=false with a reason. Args: code.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "code": {
-      "type": "string",
-      "description": "Promo code to validate and apply."
-     }
-    },
-    "required": [
-     "code"
-    ]
-   },
-   "title": "Apply promo code",
-   "annotations": {
-    "title": "Apply promo code",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "applied": {
-      "type": "boolean"
-     },
-     "code": {
-      "type": "string",
-      "description": "Normalized promo code (when applied)."
-     },
-     "subtotal": {
-      "type": "number"
-     },
-     "discount": {
-      "type": "number"
-     },
-     "shipping": {
-      "type": "number"
-     },
-     "total": {
-      "type": "number"
-     },
-     "currency": {
-      "type": "string"
-     },
-     "reason": {
-      "type": "string",
-      "description": "Why the code was rejected (when applied=false)."
-     },
-     "error": {
-      "type": "string",
-      "description": "Present when the cart is empty or code is missing."
-     }
-    }
-   }
-  },
-  {
-   "name": "remove_promo",
-   "description": "Remove the applied promo code from the cart.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {}
-   },
-   "title": "Remove promo code",
-   "annotations": {
-    "title": "Remove promo code",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "applied": {
-      "type": "boolean",
-      "description": "Always false after removal."
-     }
-    }
-   }
-  },
-  {
-   "name": "get_user_prefs",
-   "description": "Return the shopper's saved default size and fit. Call this BEFORE asking the user for a size — if a default is set, apply it automatically (add_to_cart uses it when size is omitted), and prefer products matching their fit (basic vs oversized).",
-   "inputSchema": {
-    "type": "object",
-    "properties": {}
-   },
-   "title": "Get saved size/fit",
-   "annotations": {
-    "title": "Get saved size/fit",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "size": {
-      "type": "string",
-      "description": "Saved default size, or null."
-     },
-     "fit": {
-      "type": "string",
-      "description": "Saved fit preference: basic | oversized, or null."
-     }
-    }
-   }
-  },
-  {
-   "name": "set_user_prefs",
-   "description": "Save the shopper's default size and/or fit so they don't re-enter it each time. Args: size (XS…5XL), fit (basic | oversized). Pass only what the user stated.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "size": {
-      "type": "string",
-      "description": "Default size: XS, S, M, L, XL, 2XL…5XL."
-     },
-     "fit": {
-      "type": "string",
-      "description": "Fit preference: basic or oversized."
-     }
-    }
-   },
-   "title": "Save size/fit",
-   "annotations": {
-    "title": "Save size/fit",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "size": {
-      "type": "string"
-     },
-     "fit": {
-      "type": "string"
-     },
-     "error": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "get_saved_addresses",
-   "description": "Return shipping addresses the user used in past orders — offer these to a returning buyer instead of asking again.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {}
-   },
-   "title": "Get saved addresses",
-   "annotations": {
-    "title": "Get saved addresses",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "addresses": {
-      "type": "array",
-      "description": "Up to 5 distinct addresses from past orders, newest first.",
-      "items": {
-       "type": "object",
-       "properties": {
-        "name": {
-         "type": "string"
-        },
-        "country": {
-         "type": "string"
-        },
-        "city": {
-         "type": "string"
-        },
-        "address": {
-         "type": "string"
-        },
-        "zip": {
-         "type": "string"
-        },
-        "phone": {
-         "type": "string"
-        },
-        "summary": {
-         "type": "string",
-         "description": "One-line address summary."
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  {
-   "name": "set_shipping_address",
-   "description": "Set the shipping address for this order (validated). Args: name, country, city, address, zip?, phone.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "name": {
-      "type": "string",
-      "description": "Recipient full name."
-     },
-     "country": {
-      "type": "string",
-      "description": "Destination country."
-     },
-     "city": {
-      "type": "string",
-      "description": "Destination city."
-     },
-     "address": {
-      "type": "string",
-      "description": "Street address line."
-     },
-     "zip": {
-      "type": "string",
-      "description": "Postal / ZIP code (optional where not used)."
-     },
-     "phone": {
-      "type": "string",
-      "description": "Contact phone number for delivery."
-     }
-    },
-    "required": [
-     "name",
-     "country",
-     "city",
-     "address",
-     "phone"
-    ]
-   },
-   "title": "Set shipping address",
-   "annotations": {
-    "title": "Set shipping address",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "ok": {
-      "type": "boolean"
-     },
-     "shipping": {
-      "type": "object",
-      "description": "Saved address snapshot.",
-      "properties": {
-       "name": {
-        "type": "string"
-       },
-       "country": {
-        "type": "string"
-       },
-       "city": {
-        "type": "string"
-       },
-       "address_line": {
-        "type": "string"
-       },
-       "zip": {
-        "type": "string"
-       },
-       "phone": {
-        "type": "string"
-       },
-       "full_address": {
-        "type": "string"
-       }
-      }
-     },
-     "error": {
-      "type": "string",
-      "description": "Missing fields or empty cart."
-     }
-    }
-   }
-  },
-  {
-   "name": "get_shipping_options",
-   "description": "Available shipping methods for the current cart/address, with price and ETA (free over the threshold).",
-   "inputSchema": {
-    "type": "object",
-    "properties": {}
-   },
-   "title": "Get shipping options",
-   "annotations": {
-    "title": "Get shipping options",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "options": {
-      "type": "array",
-      "items": {
-       "type": "object",
-       "properties": {
-        "id": {
-         "type": "string",
-         "description": "Pass this to set_shipping_method."
-        },
-        "label": {
-         "type": "string"
-        },
-        "price": {
-         "type": "number"
-        },
-        "currency": {
-         "type": "string"
-        },
-        "eta": {
-         "type": "string"
-        },
-        "note": {
-         "type": "string"
-        }
-       }
-      }
-     },
-     "free_shipping_from": {
-      "type": "number",
-      "description": "Subtotal (USD) at which shipping becomes free."
-     }
-    }
-   }
-  },
-  {
-   "name": "set_shipping_method",
-   "description": "Choose a shipping method by its option_id (from get_shipping_options). Args: option_id.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "option_id": {
-      "type": "string",
-      "description": "Shipping option id from get_shipping_options (currently 'worldwide')."
-     }
-    }
-   },
-   "title": "Set shipping method",
-   "annotations": {
-    "title": "Set shipping method",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "ok": {
-      "type": "boolean"
-     },
-     "shipping_method": {
-      "type": "string"
-     },
-     "error": {
-      "type": "string",
-      "description": "Unknown option_id or empty cart."
-     }
-    }
-   }
-  },
-  {
-   "name": "get_order_preview",
-   "description": "Full order summary to show the human before ordering: line items, promo/discount, shipping, address, grand total. Prices are server-computed.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {}
-   },
-   "title": "Preview order",
-   "annotations": {
-    "title": "Preview order",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "items": {
-      "type": "array",
-      "description": "Re-priced order lines.",
-      "items": {
-       "type": "object",
-       "properties": {
-        "title": {
-         "type": "string"
-        },
-        "product": {
-         "type": "string"
-        },
-        "size": {
-         "type": "string"
-        },
-        "qty": {
-         "type": "integer"
-        },
-        "price": {
-         "type": "number"
-        },
-        "custom": {
-         "type": "boolean"
-        }
-       }
-      }
-     },
-     "subtotal": {
-      "type": "number"
-     },
-     "promo_code": {
-      "type": "string"
-     },
-     "discount": {
-      "type": "number"
-     },
-     "shipping": {
-      "type": "object",
-      "properties": {
-       "method": {
-        "type": "string"
-       },
-       "price": {
-        "type": "number"
-       }
-      }
-     },
-     "shipping_address": {
-      "type": "object",
-      "description": "Address set via set_shipping_address (null if not set)."
-     },
-     "total": {
-      "type": "number"
-     },
-     "currency": {
-      "type": "string"
-     },
-     "ready_to_prepare": {
-      "type": "boolean",
-      "description": "True when an address is set and all lines are orderable."
-     },
-     "issues": {
-      "type": "array",
-      "items": {
-       "type": "string"
       },
-      "description": "Lines that became unavailable, if any."
-     },
-     "note": {
-      "type": "string"
-     },
-     "error": {
-      "type": "string",
-      "description": "Present when the cart is empty."
-     }
-    }
-   }
-  },
-  {
-   "name": "prepare_order",
-   "description": "Create a draft order from the cart + address + promo and return {checkout_url, draft_id, expires_at}. The human opens checkout_url — everything is pre-filled — reviews and pays. The agent never pays. Call get_order_preview and confirm with the human first.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {}
-   },
-   "title": "Prepare checkout",
-   "annotations": {
-    "title": "Prepare checkout",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": false,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "draft_id": {
-      "type": "string",
-      "description": "Draft order number."
-     },
-     "checkout_url": {
-      "type": "string",
-      "description": "Pre-filled checkout link — send it to the human to review and pay."
-     },
-     "expires_at": {
-      "type": "string",
-      "description": "ISO 8601 time when the draft expires (48 h)."
-     },
-     "total": {
-      "type": "number"
-     },
-     "currency": {
-      "type": "string"
-     },
-     "note": {
-      "type": "string"
-     },
-     "error": {
-      "type": "string",
-      "description": "Empty cart, missing address or no orderable items."
-     },
-     "issues": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      }
-     }
-    }
-   }
-  },
-  {
-   "name": "studio_options",
-   "description": "START HERE for any custom-print request: the menu of generation choices (print placements with plain-language descriptions, products, backgrounds, engines+costs). Present these to the human — at minimum ask which PLACEMENT and which PRODUCT they want — before calling studio_generate.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {}
-   },
-   "title": "Custom print options",
-   "annotations": {
-    "title": "Custom print options",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "placements": {
-      "type": "array",
-      "description": "Print size/position choices.",
-      "items": {
-       "type": "object",
-       "properties": {
-        "id": {
-         "type": "string"
-        },
-        "label": {
-         "type": "string"
-        },
-        "description": {
-         "type": "string"
-        }
-       }
-      }
-     },
-     "products": {
-      "type": "array",
-      "items": {
-       "type": "object",
-       "properties": {
-        "id": {
-         "type": "string"
-        },
-        "label": {
-         "type": "string"
-        }
-       }
-      }
-     },
-     "backgrounds": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      }
-     },
-     "models": {
-      "type": "array",
-      "description": "Generation engines with cost notes.",
-      "items": {
-       "type": "object",
-       "properties": {
-        "id": {
-         "type": "string"
-        },
-        "label": {
-         "type": "string"
-        },
-        "default": {
-         "type": "boolean"
-        }
-       }
-      }
-     },
-     "note": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "studio_generate",
-   "description": "Generate a CUSTOM t-shirt print from a text prompt (AI, takes 2-10 min). SPENDS THE ACCOUNT OWNER'S STUDIO CREDITS: tell them the cost and their balance and get a yes BEFORE calling this — never spend silently, and never spend to 'try something' on your own initiative. Credits are earned (20 free on signup, 20 with every tee bought), so a wasted one is a real loss to them. Free exception: preserve=true prints their own image as-is and costs nothing. IMPORTANT: first call studio_options and ask the human to pick placement + product (and optionally background); do NOT silently use defaults. Args: prompt (design description), product? (one of ['kids_basic_tshirt_boy', 'kids_basic_tshirt_girl', 'kids_oversize_tshirt_boy', 'kids_oversize_tshirt_girl', 'mens_basic_tshirt', 'mens_oversize_tshirt', 'womens_basic_tshirt', 'womens_oversize_tshirt']), background? (t-shirt background, one of ['washed-beige', 'washed-black', 'washed-blue', 'washed-brown', 'washed-gray', 'washed-green', 'washed-orange', 'washed-pink', 'washed-red', 'washed-yellow', 'watercolor-beige', 'watercolor-blue', 'watercolor-sky']), placement? (print size/position, one of ['portrait_extended', 'square_center', 'chest_small']), model? (nb2 default | gpt-image-2 — both 1 credit, different styles), image_url? (https link to the user's OWN image — used as style/subject reference), preserve? (true = print the user's image exactly as-is, no AI redraw — kids' drawings, own art; FREE, no credits; requires image_url). Returns print_id — poll studio_status until done.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "prompt": {
-      "type": "string",
-      "description": "Text description of the design to generate."
-     },
-     "product": {
-      "type": "string",
-      "description": "Studio product base from studio_options (default mens_oversize_tshirt)."
-     },
-     "background": {
-      "type": "string",
-      "description": "T-shirt background choice (see studio_options backgrounds)."
-     },
-     "placement": {
-      "type": "string",
-      "description": "Print size/position: portrait_extended (default), square_center or chest_small."
-     },
-     "model": {
-      "type": "string",
-      "description": "Generation engine: nb2 (default) or gpt-image-2 — both 1 credit."
-     },
-     "image_url": {
-      "type": "string",
-      "description": "https link to the user's OWN image, used as style/subject reference."
-     },
-     "preserve": {
-      "type": "boolean",
-      "description": "true = print the image exactly as-is, no AI redraw (free); requires image_url."
-     }
-    },
-    "required": [
-     "prompt"
-    ]
-   },
-   "title": "Generate custom print",
-   "annotations": {
-    "title": "Generate custom print",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": false,
-    "openWorldHint": true
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "print_id": {
-      "type": "string",
-      "description": "Generation id — poll studio_status with it."
-     },
-     "status": {
-      "type": "string"
-     },
-     "cost_credits": {
-      "type": "number",
-      "description": "Credits spent on this generation."
-     },
-     "balance_before": {
-      "type": "number"
-     },
-     "balance_after": {
-      "type": "number",
-      "description": "Credits left after this generation."
-     },
-     "tell_user": {
-      "type": "string",
-      "description": "Say this to the account owner — what was spent from their balance and what is left."
-     },
-     "studio_account_created": {
-      "type": "boolean",
-      "description": "Present when a Studio account was auto-created for the user."
-     },
-     "signup_bonus": {
-      "type": "number"
-     },
-     "note": {
-      "type": "string"
-     },
-     "error": {
-      "type": "string",
-      "description": "e.g. not enough Studio credits, daily limit reached, invalid product."
-     },
-     "detail": {
-      "type": "string"
-     },
-     "topup_url": {
-      "type": "string",
-      "description": "Where the user can buy credits (present on 'not enough credits')."
-     }
-    }
-   }
-  },
-  {
-   "name": "studio_status",
-   "description": "Check a custom print generation. Args: print_id (from studio_generate). When done returns preview_url — show it to the human.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "print_id": {
-      "type": "string",
-      "description": "Generation id returned by studio_generate."
-     }
-    },
-    "required": [
-     "print_id"
-    ]
-   },
-   "title": "Check print generation",
-   "annotations": {
-    "title": "Check print generation",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "print_id": {
-      "type": "string"
-     },
-     "status": {
-      "type": "string",
-      "description": "Generation state; 'done' and 'failed' are terminal."
-     },
-     "preview_url": {
-      "type": "string",
-      "description": "Raw print image (when done) — embed/attach it so the human sees the print in chat."
-     },
-     "design_url": {
-      "type": "string",
-      "description": "Shareable Studio design page (when done) — the link to SHARE with the human."
-     },
-     "note": {
-      "type": "string"
-     },
-     "error": {
-      "type": "string",
-      "description": "Generation failure reason (credits are refunded)."
-     },
-     "detail": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "studio_credits",
-   "description": "The user's Studio credit balance. Check before studio_generate (1 credit per generation, either engine; welcome bonus 20; every bought tee adds 20).",
-   "inputSchema": {
-    "type": "object",
-    "properties": {}
-   },
-   "title": "Check Studio credits",
-   "annotations": {
-    "title": "Check Studio credits",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "balance": {
-      "type": "number",
-      "description": "Current Studio credit balance."
-     },
-     "studio_account": {
-      "type": "boolean",
-      "description": "False if the user has no Studio account yet (first generate auto-creates one)."
-     },
-     "note": {
-      "type": "string"
-     },
-     "error": {
-      "type": "string"
-     },
-     "detail": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "add_custom_to_cart",
-   "description": "Put a FINISHED custom print into the cart as a product. Args: print_id (must be done), product? (same set as studio_generate), size, qty?. Then the normal checkout flow applies (get_order_preview -> prepare_order).",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "print_id": {
-      "type": "string",
-      "description": "Finished print id — studio_status must report status=done."
-     },
-     "product": {
-      "type": "string",
-      "description": "Studio product base, same set as studio_generate (default mens_oversize_tshirt)."
-     },
-     "size": {
-      "type": "string",
-      "description": "Size label; must be available for the chosen product."
-     },
-     "qty": {
-      "type": "integer",
-      "description": "Quantity (default 1, max 99)."
-     }
-    },
-    "required": [
-     "print_id",
-     "size"
-    ]
-   },
-   "title": "Add custom print to cart",
-   "annotations": {
-    "title": "Add custom print to cart",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": false,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "items": {
-      "type": "array",
-      "description": "Cart lines in index order — this index is what set_cart_quantity/cart_update/cart_remove take.",
-      "items": {
-       "type": "object",
-       "properties": {
-        "good_id": {
-         "type": "integer"
-        },
-        "code": {
-         "type": "string"
-        },
-        "title": {
-         "type": "string"
-        },
-        "product": {
-         "type": "string"
-        },
-        "size": {
-         "type": "string"
-        },
-        "fabric": {
-         "type": "string"
-        },
-        "price": {
-         "type": "number"
-        },
-        "currency": {
-         "type": "string"
-        },
-        "qty": {
-         "type": "integer"
-        },
-        "custom": {
-         "type": "boolean",
-         "description": "True when the line is a user-generated custom print."
-        }
-       }
-      }
-     },
-     "subtotal": {
-      "type": "number",
-      "description": "Sum of price x qty over all lines, USD."
-     },
-     "currency": {
-      "type": "string"
-     },
-     "checkout_url": {
-      "type": "string",
-      "description": "Cart page URL for the human."
-     },
-     "error": {
-      "type": "string",
-      "description": "Present instead of a cart when the call failed (bad index, unavailable size, ...)."
-     }
-    }
-   }
-  },
-  {
-   "name": "designer_stats",
-   "description": "The user's designer-program stats (if they are a designer-partner): units sold, revenue, accrued royalties, available for payout, royalty percent, their designer page URL.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {}
-   },
-   "title": "Designer stats",
-   "annotations": {
-    "title": "Designer stats",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "is_partner": {
-      "type": "boolean"
-     },
-     "nickname": {
-      "type": "string"
-     },
-     "royalty_percent": {
-      "type": "number"
-     },
-     "landing": {
-      "type": "string",
-      "description": "The designer's public page URL."
-     },
-     "units_sold": {
-      "type": "integer"
-     },
-     "revenue": {
-      "type": "number"
-     },
-     "accrued": {
-      "type": "number",
-      "description": "Royalties accrued from paid orders."
-     },
-     "available_for_payout": {
-      "type": "number",
-      "description": "Accrued royalties from delivered orders, ready for payout."
-     },
-     "pitch": {
-      "type": "string",
-      "description": "Designer-program pitch to relay to the user — present when is_partner is false."
-     },
-     "how_to_join": {
-      "type": "string",
-      "description": "How to join the designer program — present when is_partner is false."
-     },
-     "note": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "designer_designs",
-   "description": "The user's own published designs with live status (products on sale / hidden / pending). Args: limit? (default 50).",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "limit": {
-      "type": "integer",
-      "description": "Max designs to return (default 50, max 200)."
-     }
-    }
-   },
-   "title": "List my designs",
-   "annotations": {
-    "title": "List my designs",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "is_partner": {
-      "type": "boolean"
-     },
-     "designs": {
-      "type": "array",
-      "items": {
-       "type": "object",
-       "properties": {
-        "design_id": {
-         "type": "integer"
-        },
-        "name": {
-         "type": "string"
-        },
-        "live_products": {
-         "type": "integer",
-         "description": "Active products with this design."
-        },
-        "status": {
-         "type": "string",
-         "description": "live | hidden | no products yet"
-        },
-        "url": {
-         "type": "string",
-         "description": "Product page (null if nothing is live)."
-        }
-       }
-      }
-     },
-     "designer_page": {
-      "type": "string"
-     },
-     "pitch": {
-      "type": "string",
-      "description": "Designer-program pitch to relay to the user — present when is_partner is false."
-     },
-     "how_to_join": {
-      "type": "string",
-      "description": "How to join the designer program — present when is_partner is false."
-     },
-     "note": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "designer_upload_slot",
-   "description": "Get a short-lived URL to upload an image file to us (use when the designer has no public link — otherwise pass the URL straight to submit_design). Args: filename?. PUT the raw bytes to upload_url, then pass the returned upload_id to submit_design.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "filename": {
-      "type": "string",
-      "description": "Original file name, for readability."
-     }
-    }
-   },
-   "title": "Get an upload URL",
-   "annotations": {
-    "title": "Get an upload URL",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": false,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "is_partner": {
-      "type": "boolean"
-     },
-     "upload_id": {
-      "type": "string"
-     },
-     "upload_url": {
-      "type": "string"
-     },
-     "expires_in": {
-      "type": "integer",
-      "description": "Seconds the URL stays valid."
-     },
-     "method": {
-      "type": "string"
-     },
-     "pitch": {
-      "type": "string",
-      "description": "Designer-program pitch to relay to the user — present when is_partner is false."
-     },
-     "how_to_join": {
-      "type": "string",
-      "description": "How to join the designer program — present when is_partner is false."
-     },
-     "note": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "submit_design",
-   "description": "Send one of the designer's own artworks for moderation. TWO inputs, same path: either artwork files — front/back accept a public image URL OR an upload_id from designer_upload_slot — or session_id of a FINISHED Studio session of theirs (generated with studio_generate; no need to download the print, we fetch it server-side). Args: name (required), front OR session_id (one of them), back?, layout? ('front_back' default, or 'r10' for a ready print-side file), note?, batch? (same string across a bulk run so the moderator sees them as one batch). Minimum 2048px on the short side. IMPORTANT for the designer: this queues the artwork for moderation — catalog listing follows production and is not instant.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "name": {
-      "type": "string",
-      "description": "Design name the moderator will see."
-     },
-     "front": {
-      "type": "string",
-      "description": "Image URL or upload_id. Omit when passing session_id."
-     },
-     "session_id": {
-      "type": "string",
-      "description": "Finished Studio session of this designer (print_id from studio_generate). Alternative to front."
-     },
-     "back": {
-      "type": "string",
-      "description": "Optional second side: URL or upload_id."
-     },
-     "layout": {
-      "type": "string",
-      "description": "'front_back' (default) or 'r10'."
-     },
-     "note": {
-      "type": "string",
-      "description": "Anything the moderator should know."
-     },
-     "batch": {
-      "type": "string",
-      "description": "Group id for a bulk upload."
-     }
-    },
-    "required": [
-     "name",
-     "front"
-    ]
-   },
-   "title": "Submit artwork",
-   "annotations": {
-    "title": "Submit artwork",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": false,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "is_partner": {
-      "type": "boolean"
-     },
-     "ok": {
-      "type": "boolean"
-     },
-     "upload_id": {
-      "type": "integer"
-     },
-     "status": {
-      "type": "string"
-     },
-     "error": {
-      "type": "string"
-     },
-     "pitch": {
-      "type": "string",
-      "description": "Designer-program pitch to relay to the user — present when is_partner is false."
-     },
-     "how_to_join": {
-      "type": "string",
-      "description": "How to join the designer program — present when is_partner is false."
-     },
-     "note": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "designer_uploads",
-   "description": "What the designer has already sent in and where it stands: in review / accepted / needs changes (with the reason). Args: limit?.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "limit": {
-      "type": "integer",
-      "description": "Max rows (default 50, max 200)."
-     }
-    }
-   },
-   "title": "My uploads",
-   "annotations": {
-    "title": "My uploads",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "is_partner": {
-      "type": "boolean"
-     },
-     "uploads": {
-      "type": "array",
-      "items": {
-       "type": "object",
-       "properties": {
-        "id": {
-         "type": "integer"
-        },
-        "name": {
-         "type": "string"
-        },
-        "status": {
-         "type": "string"
-        },
-        "reason": {
-         "type": "string"
-        },
-        "batch": {
-         "type": "string"
-        }
-       }
-      }
-     },
-     "pitch": {
-      "type": "string",
-      "description": "Designer-program pitch to relay to the user — present when is_partner is false."
-     },
-     "how_to_join": {
-      "type": "string",
-      "description": "How to join the designer program — present when is_partner is false."
-     },
-     "note": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "designer_submissions",
-   "description": "The user's Studio publications in moderation: in review / in catalog / needs changes. Args: limit?.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "limit": {
-      "type": "integer",
-      "description": "Max submissions to return (default 20, max 100)."
-     }
-    }
-   },
-   "title": "List my submissions",
-   "annotations": {
-    "title": "List my submissions",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "is_partner": {
-      "type": "boolean"
-     },
-     "submissions": {
-      "type": "array",
-      "items": {
-       "type": "object",
-       "properties": {
-        "id": {
-         "type": "integer"
-        },
-        "design_name": {
-         "type": "string"
-        },
-        "status": {
-         "type": "string",
-         "description": "in review | in catalog | needs changes"
-        },
-        "submitted_at": {
-         "type": "string"
-        }
-       }
-      }
-     },
-     "pitch": {
-      "type": "string",
-      "description": "Designer-program pitch to relay to the user — present when is_partner is false."
-     },
-     "how_to_join": {
-      "type": "string",
-      "description": "How to join the designer program — present when is_partner is false."
-     },
-     "note": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "designer_colorways",
-   "description": "My colorway sets: one catalog card per set instead of one per colour. No args.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {}
-   },
-   "title": "List my colorway sets",
-   "annotations": {
-    "title": "List my colorway sets",
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "is_partner": {
-      "type": "boolean"
-     },
-     "sets": {
-      "type": "array",
-      "items": {
-       "type": "object",
-       "properties": {
-        "colorway_id": {
-         "type": "integer"
-        },
-        "shown_as": {
-         "type": "string"
-        },
-        "variants": {
-         "type": "array",
-         "items": {
-          "type": "object"
-         }
-        }
-       }
-      }
-     },
-     "pitch": {
-      "type": "string",
-      "description": "Designer-program pitch to relay to the user — present when is_partner is false."
-     },
-     "how_to_join": {
-      "type": "string",
-      "description": "How to join the designer program — present when is_partner is false."
-     },
-     "note": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "create_colorway",
-   "description": "Group my recolours of ONE artwork into a set (2+ of my designs). The catalog then shows one card for the set; every variant keeps its own page and link. Args: design_ids (list of my design ids), primary? (which one represents the set).",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "design_ids": {
-      "type": "array",
-      "items": {
-       "type": "integer"
+      "title": "Search catalog",
+      "annotations": {
+        "title": "Search catalog",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
       },
-      "description": "At least two of my own design ids."
-     },
-     "primary": {
-      "type": "integer",
-      "description": "Which variant represents the set."
-     }
-    },
-    "required": [
-     "design_ids"
-    ]
-   },
-   "title": "Create a colorway set",
-   "annotations": {
-    "title": "Create a colorway set",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": false,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "ok": {
-      "type": "boolean"
-     },
-     "colorway_id": {
-      "type": "integer"
-     },
-     "variants": {
-      "type": "array",
-      "items": {
-       "type": "integer"
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Total catalog matches for the filters."
+          },
+          "showing": {
+            "type": "integer",
+            "description": "Number of cards returned."
+          },
+          "items": {
+            "type": "array",
+            "description": "Product cards.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "good_id": {
+                  "type": "integer"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "product": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "theme": {
+                  "type": "string"
+                },
+                "image": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Canonical product page."
+                }
+              }
+            }
+          }
+        }
       }
-     },
-     "primary": {
-      "type": "integer"
-     },
-     "error": {
-      "type": "string"
-     },
-     "pitch": {
-      "type": "string",
-      "description": "Designer-program pitch to relay to the user — present when is_partner is false."
-     },
-     "how_to_join": {
-      "type": "string",
-      "description": "How to join the designer program — present when is_partner is false."
-     },
-     "note": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "designer_add_to_colorway",
-   "description": "Add one more of my recolours to a set of mine. Args: colorway_id, design_id.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "colorway_id": {
-      "type": "integer"
-     },
-     "design_id": {
-      "type": "integer"
-     }
     },
-    "required": [
-     "colorway_id",
-     "design_id"
-    ]
-   },
-   "title": "Add to a colorway set",
-   "annotations": {
-    "title": "Add to a colorway set",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": false,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "ok": {
-      "type": "boolean"
-     },
-     "colorway_id": {
-      "type": "integer"
-     },
-     "variants": {
-      "type": "array",
-      "items": {
-       "type": "integer"
+    {
+      "name": "get_product",
+      "description": "Full details of one product by its code: available sizes, fabrics, per-variant price, and the design 'about' text. Args: code (from search_products).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Product code from search_products results."
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "title": "Get product details",
+      "annotations": {
+        "title": "Get product details",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "good_id": {
+            "type": "integer"
+          },
+          "code": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "theme": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "sizes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fabrics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "variants": {
+            "type": "array",
+            "description": "Price per size+fabric combination.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "size": {
+                  "type": "string"
+                },
+                "fabric": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "about": {
+            "type": "string",
+            "description": "Design description text (may be null)."
+          },
+          "error": {
+            "type": "string",
+            "description": "Present when the product was not found."
+          }
+        }
       }
-     },
-     "error": {
-      "type": "string"
-     },
-     "pitch": {
-      "type": "string",
-      "description": "Designer-program pitch to relay to the user — present when is_partner is false."
-     },
-     "how_to_join": {
-      "type": "string",
-      "description": "How to join the designer program — present when is_partner is false."
-     },
-     "note": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "designer_remove_from_colorway",
-   "description": "Take one of my designs out of its set — it gets its own catalog card again. A set left with a single variant is dissolved. Args: design_id.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "design_id": {
-      "type": "integer"
-     }
     },
-    "required": [
-     "design_id"
-    ]
-   },
-   "title": "Remove from a colorway set",
-   "annotations": {
-    "title": "Remove from a colorway set",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": false,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "ok": {
-      "type": "boolean"
-     },
-     "design_id": {
-      "type": "integer"
-     },
-     "error": {
-      "type": "string"
-     },
-     "pitch": {
-      "type": "string",
-      "description": "Designer-program pitch to relay to the user — present when is_partner is false."
-     },
-     "how_to_join": {
-      "type": "string",
-      "description": "How to join the designer program — present when is_partner is false."
-     },
-     "note": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  {
-   "name": "set_colorway_primary",
-   "description": "Choose which variant of my set represents it in the catalog. Args: colorway_id, design_id.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "colorway_id": {
-      "type": "integer"
-     },
-     "design_id": {
-      "type": "integer"
-     }
+    {
+      "name": "list_collections",
+      "description": "List active curated collections (themed landing pages) with their slugs and urls. Args: limit?.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "Max collections to return (default 50, max 100)."
+          }
+        }
+      },
+      "title": "List collections",
+      "annotations": {
+        "title": "List collections",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Collection landing page."
+                }
+              }
+            }
+          }
+        }
+      }
     },
-    "required": [
-     "colorway_id",
-     "design_id"
-    ]
-   },
-   "title": "Set the face of a colorway set",
-   "annotations": {
-    "title": "Set the face of a colorway set",
-    "readOnlyHint": false,
-    "destructiveHint": false,
-    "idempotentHint": false,
-    "openWorldHint": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "ok": {
-      "type": "boolean"
-     },
-     "colorway_id": {
-      "type": "integer"
-     },
-     "primary": {
-      "type": "integer"
-     },
-     "error": {
-      "type": "string"
-     },
-     "pitch": {
-      "type": "string",
-      "description": "Designer-program pitch to relay to the user — present when is_partner is false."
-     },
-     "how_to_join": {
-      "type": "string",
-      "description": "How to join the designer program — present when is_partner is false."
-     },
-     "note": {
-      "type": "string"
-     }
+    {
+      "name": "view_cart",
+      "description": "Show the current contents of the user's cart (the same cart they see in the browser when signed in).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "title": "View cart",
+      "annotations": {
+        "title": "View cart",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Cart lines in index order — this index is what update_cart_item takes.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "good_id": {
+                  "type": "integer"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "product": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "string"
+                },
+                "fabric": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "qty": {
+                  "type": "integer"
+                },
+                "custom": {
+                  "type": "boolean",
+                  "description": "True when the line is a user-generated custom print."
+                }
+              }
+            }
+          },
+          "subtotal": {
+            "type": "number",
+            "description": "Sum of price x qty over all lines, USD."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "checkout_url": {
+            "type": "string",
+            "description": "Cart page URL for the human."
+          },
+          "error": {
+            "type": "string",
+            "description": "Present instead of a cart when the call failed (bad index, unavailable size, ...)."
+          }
+        }
+      }
+    },
+    {
+      "name": "add_to_cart",
+      "description": "Add a product to the user's cart. Args: good_id (from search/get_product), size (must be one of the product's sizes), fabric? (if the product offers a choice), qty? (default 1). Returns the updated cart.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "good_id": {
+            "type": "integer",
+            "description": "Numeric product id from search_products/get_product."
+          },
+          "size": {
+            "type": "string",
+            "description": "Size label; must be one of the product's available sizes."
+          },
+          "fabric": {
+            "type": "string",
+            "description": "Fabric label from get_product, if the product offers a choice."
+          },
+          "qty": {
+            "type": "integer",
+            "description": "Quantity to add (default 1, max 99)."
+          }
+        },
+        "required": [
+          "good_id",
+          "size"
+        ]
+      },
+      "title": "Add to cart",
+      "annotations": {
+        "title": "Add to cart",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Cart lines in index order — this index is what update_cart_item takes.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "good_id": {
+                  "type": "integer"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "product": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "string"
+                },
+                "fabric": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "qty": {
+                  "type": "integer"
+                },
+                "custom": {
+                  "type": "boolean",
+                  "description": "True when the line is a user-generated custom print."
+                }
+              }
+            }
+          },
+          "subtotal": {
+            "type": "number",
+            "description": "Sum of price x qty over all lines, USD."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "checkout_url": {
+            "type": "string",
+            "description": "Cart page URL for the human."
+          },
+          "error": {
+            "type": "string",
+            "description": "Present instead of a cart when the call failed (bad index, unavailable size, ...)."
+          }
+        }
+      }
+    },
+    {
+      "name": "get_order_status",
+      "description": "Look up the user's recent orders (or one by number) and their fulfilment status. Args: number?, limit? (default 5).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Exact order number to look up; omit for the most recent orders."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Max orders to return (default 5, max 20)."
+          }
+        }
+      },
+      "title": "Check order status",
+      "annotations": {
+        "title": "Check order status",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "orders": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "number": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "total": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string",
+                  "description": "ISO 8601 timestamp."
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Order tracking page."
+                }
+              }
+            }
+          },
+          "note": {
+            "type": "string",
+            "description": "Present when the account has no email on file."
+          }
+        }
+      }
+    },
+    {
+      "name": "update_cart_item",
+      "description": "Change a cart line by its index (from view_cart): set qty (0 removes), or switch size/fabric. Args: index, qty?, size?, fabric?.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "description": "Zero-based cart line index from view_cart."
+          },
+          "qty": {
+            "type": "integer",
+            "description": "New quantity; 0 removes the line."
+          },
+          "size": {
+            "type": "string",
+            "description": "New size for this line (must be available for the product)."
+          },
+          "fabric": {
+            "type": "string",
+            "description": "New fabric for this line (must be available for the product)."
+          }
+        },
+        "required": [
+          "index"
+        ]
+      },
+      "title": "Update cart line",
+      "annotations": {
+        "title": "Update cart line",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Cart lines in index order — this index is what update_cart_item takes.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "good_id": {
+                  "type": "integer"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "product": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "string"
+                },
+                "fabric": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "qty": {
+                  "type": "integer"
+                },
+                "custom": {
+                  "type": "boolean",
+                  "description": "True when the line is a user-generated custom print."
+                }
+              }
+            }
+          },
+          "subtotal": {
+            "type": "number",
+            "description": "Sum of price x qty over all lines, USD."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "checkout_url": {
+            "type": "string",
+            "description": "Cart page URL for the human."
+          },
+          "error": {
+            "type": "string",
+            "description": "Present instead of a cart when the call failed (bad index, unavailable size, ...)."
+          }
+        }
+      }
+    },
+    {
+      "name": "apply_promo",
+      "description": "Validate and apply a promo code to the cart (server-checked). Returns the new discount/shipping/total, or applied=false with a reason. Args: code.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Promo code to validate and apply."
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "title": "Apply promo code",
+      "annotations": {
+        "title": "Apply promo code",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "applied": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string",
+            "description": "Normalized promo code (when applied)."
+          },
+          "subtotal": {
+            "type": "number"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "shipping": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the code was rejected (when applied=false)."
+          },
+          "error": {
+            "type": "string",
+            "description": "Present when the cart is empty or code is missing."
+          }
+        }
+      }
+    },
+    {
+      "name": "remove_promo",
+      "description": "Remove the applied promo code from the cart.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "title": "Remove promo code",
+      "annotations": {
+        "title": "Remove promo code",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "applied": {
+            "type": "boolean",
+            "description": "Always false after removal."
+          }
+        }
+      }
+    },
+    {
+      "name": "get_user_prefs",
+      "description": "Return the shopper's saved default size and fit. Call this BEFORE asking the user for a size — if a default is set, apply it automatically (add_to_cart uses it when size is omitted), and search in their fit: search_products style='oversized' for oversized, style='tee' for basic.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "title": "Get saved size/fit",
+      "annotations": {
+        "title": "Get saved size/fit",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "size": {
+            "type": "string",
+            "description": "Saved default size, or null."
+          },
+          "fit": {
+            "type": "string",
+            "description": "Saved fit preference: basic | oversized, or null."
+          }
+        }
+      }
+    },
+    {
+      "name": "set_user_prefs",
+      "description": "Save the shopper's default size and/or fit so they don't re-enter it each time. Args: size (XS…5XL), fit (basic | oversized). Pass only what the user stated.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "size": {
+            "type": "string",
+            "description": "Default size: XS, S, M, L, XL, 2XL…5XL."
+          },
+          "fit": {
+            "type": "string",
+            "description": "Fit preference: basic or oversized."
+          }
+        }
+      },
+      "title": "Save size/fit",
+      "annotations": {
+        "title": "Save size/fit",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "size": {
+            "type": "string"
+          },
+          "fit": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_saved_addresses",
+      "description": "Return shipping addresses the user used in past orders — offer these to a returning buyer instead of asking again.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "title": "Get saved addresses",
+      "annotations": {
+        "title": "Get saved addresses",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "addresses": {
+            "type": "array",
+            "description": "Up to 5 distinct addresses from past orders, newest first.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "country": {
+                  "type": "string"
+                },
+                "city": {
+                  "type": "string"
+                },
+                "address": {
+                  "type": "string"
+                },
+                "zip": {
+                  "type": "string"
+                },
+                "phone": {
+                  "type": "string"
+                },
+                "summary": {
+                  "type": "string",
+                  "description": "One-line address summary."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "set_shipping_address",
+      "description": "Set the shipping address for this order (validated). Args: name, country, city, address, zip?, phone.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Recipient full name."
+          },
+          "country": {
+            "type": "string",
+            "description": "Destination country."
+          },
+          "city": {
+            "type": "string",
+            "description": "Destination city."
+          },
+          "address": {
+            "type": "string",
+            "description": "Street address line."
+          },
+          "zip": {
+            "type": "string",
+            "description": "Postal / ZIP code (optional where not used)."
+          },
+          "phone": {
+            "type": "string",
+            "description": "Contact phone number for delivery."
+          }
+        },
+        "required": [
+          "name",
+          "country",
+          "city",
+          "address",
+          "phone"
+        ]
+      },
+      "title": "Set shipping address",
+      "annotations": {
+        "title": "Set shipping address",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "shipping": {
+            "type": "object",
+            "description": "Saved address snapshot.",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "country": {
+                "type": "string"
+              },
+              "city": {
+                "type": "string"
+              },
+              "address_line": {
+                "type": "string"
+              },
+              "zip": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string"
+              },
+              "full_address": {
+                "type": "string"
+              }
+            }
+          },
+          "error": {
+            "type": "string",
+            "description": "Missing fields or empty cart."
+          }
+        }
+      }
+    },
+    {
+      "name": "get_shipping_options",
+      "description": "Available shipping methods for the current cart/address, with price and ETA (free over the threshold).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "title": "Get shipping options",
+      "annotations": {
+        "title": "Get shipping options",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Pass this to set_shipping_method."
+                },
+                "label": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "eta": {
+                  "type": "string"
+                },
+                "note": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "free_shipping_from": {
+            "type": "number",
+            "description": "Subtotal (USD) at which shipping becomes free."
+          }
+        }
+      }
+    },
+    {
+      "name": "set_shipping_method",
+      "description": "Choose a shipping method by its option_id (from get_shipping_options). Args: option_id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "option_id": {
+            "type": "string",
+            "description": "Shipping option id from get_shipping_options (currently 'worldwide')."
+          }
+        }
+      },
+      "title": "Set shipping method",
+      "annotations": {
+        "title": "Set shipping method",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "shipping_method": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string",
+            "description": "Unknown option_id or empty cart."
+          }
+        }
+      }
+    },
+    {
+      "name": "get_order_preview",
+      "description": "Full order summary to show the human before ordering: line items, promo/discount, shipping, address, grand total. Prices are server-computed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "title": "Preview order",
+      "annotations": {
+        "title": "Preview order",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Re-priced order lines.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "product": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "string"
+                },
+                "qty": {
+                  "type": "integer"
+                },
+                "price": {
+                  "type": "number"
+                },
+                "custom": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "subtotal": {
+            "type": "number"
+          },
+          "promo_code": {
+            "type": "string"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "shipping": {
+            "type": "object",
+            "properties": {
+              "method": {
+                "type": "string"
+              },
+              "price": {
+                "type": "number"
+              }
+            }
+          },
+          "shipping_address": {
+            "type": "object",
+            "description": "Address set via set_shipping_address (null if not set)."
+          },
+          "total": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "ready_to_prepare": {
+            "type": "boolean",
+            "description": "True when an address is set and all lines are orderable."
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Lines that became unavailable, if any."
+          },
+          "note": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string",
+            "description": "Present when the cart is empty."
+          }
+        }
+      }
+    },
+    {
+      "name": "prepare_order",
+      "description": "Create a draft order from the cart + address + promo and return {checkout_url, draft_id, expires_at}. The human opens checkout_url — everything is pre-filled — reviews and pays. The agent never pays. Call get_order_preview and confirm with the human first.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "title": "Prepare checkout",
+      "annotations": {
+        "title": "Prepare checkout",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "draft_id": {
+            "type": "string",
+            "description": "Draft order number."
+          },
+          "checkout_url": {
+            "type": "string",
+            "description": "Pre-filled checkout link — send it to the human to review and pay."
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "ISO 8601 time when the draft expires (48 h)."
+          },
+          "total": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string",
+            "description": "Empty cart, missing address or no orderable items."
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "get_studio_options",
+      "description": "START HERE for any custom-print request: the menu of generation choices (print placements with plain-language descriptions, products, backgrounds, engines+costs). Present these to the human — at minimum ask which PLACEMENT and which PRODUCT they want — before calling generate_custom_print.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "title": "Custom print options",
+      "annotations": {
+        "title": "Custom print options",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "placements": {
+            "type": "array",
+            "description": "Print size/position choices.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "backgrounds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "models": {
+            "type": "array",
+            "description": "Generation engines with cost notes.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "default": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "generate_custom_print",
+      "description": "Generate a CUSTOM t-shirt print from a text prompt (AI, takes 2-10 min). SPENDS THE ACCOUNT OWNER'S STUDIO CREDITS: tell them the cost and their balance and get a yes BEFORE calling this — never spend silently, and never spend to 'try something' on your own initiative. Credits are earned (20 free on signup, 20 with every tee bought), so a wasted one is a real loss to them. Free exception: preserve=true prints their own image as-is and costs nothing. IMPORTANT: first call get_studio_options and ask the human to pick placement + product (and optionally background); do NOT silently use defaults. Args: prompt (design description), product? (one of ['kids_basic_tshirt_boy', 'kids_basic_tshirt_girl', 'kids_oversize_tshirt_boy', 'kids_oversize_tshirt_girl', 'mens_basic_tshirt', 'mens_oversize_tshirt', 'womens_basic_tshirt', 'womens_oversize_tshirt']), background? (t-shirt background, one of ['washed-beige', 'washed-black', 'washed-blue', 'washed-brown', 'washed-gray', 'washed-green', 'washed-orange', 'washed-pink', 'washed-red', 'washed-yellow', 'watercolor-beige', 'watercolor-blue', 'watercolor-sky']), placement? (print size/position, one of ['portrait_extended', 'square_center', 'chest_small']), model? (nb2 default | gpt-image-2 — both 1 credit, different styles), image_url? (https link to the user's OWN image — used as style/subject reference), preserve? (true = print the user's image exactly as-is, no AI redraw — kids' drawings, own art; FREE, no credits; requires image_url). Returns print_id — poll get_studio_status until done.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "Text description of the design to generate."
+          },
+          "product": {
+            "type": "string",
+            "description": "Studio product base from get_studio_options (default mens_oversize_tshirt)."
+          },
+          "background": {
+            "type": "string",
+            "description": "T-shirt background choice (see get_studio_options backgrounds)."
+          },
+          "placement": {
+            "type": "string",
+            "description": "Print size/position: portrait_extended (default), square_center or chest_small."
+          },
+          "model": {
+            "type": "string",
+            "description": "Generation engine: nb2 (default) or gpt-image-2 — both 1 credit."
+          },
+          "image_url": {
+            "type": "string",
+            "description": "https link to the user's OWN image, used as style/subject reference."
+          },
+          "preserve": {
+            "type": "boolean",
+            "description": "true = print the image exactly as-is, no AI redraw (free); requires image_url."
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "title": "Generate custom print",
+      "annotations": {
+        "title": "Generate custom print",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "print_id": {
+            "type": "string",
+            "description": "Generation id — poll get_studio_status with it."
+          },
+          "status": {
+            "type": "string"
+          },
+          "cost_credits": {
+            "type": "number",
+            "description": "Credits spent on this generation."
+          },
+          "balance_before": {
+            "type": "number"
+          },
+          "balance_after": {
+            "type": "number",
+            "description": "Credits left after this generation."
+          },
+          "tell_user": {
+            "type": "string",
+            "description": "Say this to the account owner — what was spent from their balance and what is left."
+          },
+          "studio_account_created": {
+            "type": "boolean",
+            "description": "Present when a Studio account was auto-created for the user."
+          },
+          "signup_bonus": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string",
+            "description": "e.g. not enough Studio credits, daily limit reached, invalid product."
+          },
+          "detail": {
+            "type": "string"
+          },
+          "topup_url": {
+            "type": "string",
+            "description": "Where the user can buy credits (present on 'not enough credits')."
+          }
+        }
+      }
+    },
+    {
+      "name": "get_studio_status",
+      "description": "Check a custom print generation. Args: print_id (from generate_custom_print). When done returns preview_url — show it to the human.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "print_id": {
+            "type": "string",
+            "description": "Generation id returned by generate_custom_print."
+          }
+        },
+        "required": [
+          "print_id"
+        ]
+      },
+      "title": "Check print generation",
+      "annotations": {
+        "title": "Check print generation",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "print_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "Generation state; 'done' and 'failed' are terminal."
+          },
+          "preview_url": {
+            "type": "string",
+            "description": "Raw print image (when done) — embed/attach it so the human sees the print in chat."
+          },
+          "design_url": {
+            "type": "string",
+            "description": "Shareable Studio design page (when done) — the link to SHARE with the human."
+          },
+          "note": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string",
+            "description": "Generation failure reason (credits are refunded)."
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_studio_credits",
+      "description": "The user's Studio credit balance. Check before generate_custom_print (1 credit per generation, either engine; welcome bonus 20; every bought tee adds 20).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "title": "Check Studio credits",
+      "annotations": {
+        "title": "Check Studio credits",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "balance": {
+            "type": "number",
+            "description": "Current Studio credit balance."
+          },
+          "studio_account": {
+            "type": "boolean",
+            "description": "False if the user has no Studio account yet (first generate auto-creates one)."
+          },
+          "note": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "add_custom_to_cart",
+      "description": "Put a FINISHED custom print into the cart as a product. Args: print_id (must be done), product? (same set as generate_custom_print), size, qty?. Then the normal checkout flow applies (get_order_preview -> prepare_order).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "print_id": {
+            "type": "string",
+            "description": "Finished print id — get_studio_status must report status=done."
+          },
+          "product": {
+            "type": "string",
+            "description": "Studio product base, same set as generate_custom_print (default mens_oversize_tshirt)."
+          },
+          "size": {
+            "type": "string",
+            "description": "Size label; must be available for the chosen product."
+          },
+          "qty": {
+            "type": "integer",
+            "description": "Quantity (default 1, max 99)."
+          }
+        },
+        "required": [
+          "print_id",
+          "size"
+        ]
+      },
+      "title": "Add custom print to cart",
+      "annotations": {
+        "title": "Add custom print to cart",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Cart lines in index order — this index is what update_cart_item takes.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "good_id": {
+                  "type": "integer"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "product": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "string"
+                },
+                "fabric": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "qty": {
+                  "type": "integer"
+                },
+                "custom": {
+                  "type": "boolean",
+                  "description": "True when the line is a user-generated custom print."
+                }
+              }
+            }
+          },
+          "subtotal": {
+            "type": "number",
+            "description": "Sum of price x qty over all lines, USD."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "checkout_url": {
+            "type": "string",
+            "description": "Cart page URL for the human."
+          },
+          "error": {
+            "type": "string",
+            "description": "Present instead of a cart when the call failed (bad index, unavailable size, ...)."
+          }
+        }
+      }
     }
-   }
-  }
- ]
+  ]
 }

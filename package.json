@@ -1,6 +1,6 @@
 {
   "name": "agentee-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AgenTee — MCP server for the allover.art print-on-demand store (stdio client for https://allover.art/mcp)",
   "type": "module",
   "bin": {
