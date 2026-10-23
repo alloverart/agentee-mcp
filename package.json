@@ -14,7 +14,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node test/smoke.mjs"
   },
   "engines": {
     "node": ">=18"
