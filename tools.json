@@ -2,7 +2,7 @@
   "tools": [
     {
       "name": "search_products",
-      "description": "Search the allover.art catalog (one card per design). Args: query? (free text, e.g. 'cat', 'neon koi'), theme? (canonical theme like Cats/Anime/Skulls, comma-separated for several), section? (mens|womens|kids), color? (main print color), style? (tee|oversized|long_sleeve|oversized_long_sleeve — use the shopper's saved fit from get_user_prefs), limit? (<=48), max_price? (USD). Returns product cards with good_id, price and url.",
+      "description": "Search the allover.art catalog; returns one card per design (good_id, code, price, url) plus the total match count. Use it for any 'find me a …' request — list_collections is for curated themed pages, get_product for one card's sizes and fabrics. Filters combine: query is free text ('cat', 'neon koi'); theme is a canonical theme (Cats, Anime, Skulls; comma-separate several); style should follow the shopper's saved fit from get_user_prefs (basic → tee, oversized → oversized); max_price is USD. Ranked by relevance with a query, by best-sellers without. No paging: you get the top `limit` (default 24, max 48), so narrow the filters to reach the rest. Adult-only designs are excluded; an unknown color or style returns an error listing the valid values.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -16,7 +16,12 @@
           },
           "section": {
             "type": "string",
-            "description": "Catalog section: mens, womens or kids."
+            "enum": [
+              "mens",
+              "womens",
+              "kids"
+            ],
+            "description": "Catalog section."
           },
           "color": {
             "type": "string",
@@ -116,13 +121,17 @@
                 }
               }
             }
+          },
+          "error": {
+            "type": "string",
+            "description": "Unknown color or style, with the valid values."
           }
         }
       }
     },
     {
       "name": "get_product",
-      "description": "Full details of one product by its code: available sizes, fabrics, per-variant price, and the design 'about' text. Args: code (from search_products).",
+      "description": "Get one product by its code: available sizes, fabrics, the price of each size+fabric variant, and the design's 'about' text. Call it before add_to_cart when the human hasn't picked a size yet or may want another fabric — a search card doesn't list them. code is the `code` field of a search_products card (the end of its /p/<code> url); add_to_cart then takes the numeric good_id, which this result also returns. Read-only; an unknown code returns error 'product not found'.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -216,7 +225,7 @@
     },
     {
       "name": "list_collections",
-      "description": "List active curated collections (themed landing pages) with their slugs and urls. Args: limit?.",
+      "description": "List active curated collections — themed landing pages on allover.art, trending first — with title, slug and url. Use it when the human wants ideas or a themed page to browse; send them the url. Collections are not a search filter: to find products in a theme, call search_products with theme or query. limit caps the list (default 50, max 100). Read-only.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -260,7 +269,7 @@
     },
     {
       "name": "view_cart",
-      "description": "Show the current contents of the user's cart (the same cart they see in the browser when signed in).",
+      "description": "Show the lines in the user's cart with qty, size, fabric and subtotal. It is the same server-side cart the human sees at allover.art/cart when signed in, so items they added in the browser appear here too. Use it to get the zero-based line index that update_cart_item takes — re-read after removing a line, since later indexes shift. Prices are as added; for the payable total with fresh prices, promo and shipping use get_order_preview. Read-only.",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -336,7 +345,7 @@
     },
     {
       "name": "add_to_cart",
-      "description": "Add a product to the user's cart. Args: good_id (from search/get_product), size (must be one of the product's sizes), fabric? (if the product offers a choice), qty? (default 1). Returns the updated cart.",
+      "description": "Add a catalog product to the user's cart and return the updated cart. good_id comes from a search_products or get_product result; size must be one of get_product's sizes — omit it to use the shopper's saved default from get_user_prefs. Omit fabric to take the first one offered in that size. qty (default 1) is added: if the same product, size and fabric is already in the cart, that line grows (capped at 99) instead of a new line appearing. An unknown good_id or unavailable size returns an error listing the available sizes, and the cart stays unchanged. For an AI-generated print use add_custom_to_cart; to change a line already in the cart, update_cart_item.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -346,7 +355,7 @@
           },
           "size": {
             "type": "string",
-            "description": "Size label; must be one of the product's available sizes."
+            "description": "Size label; must be one of the product's available sizes. Optional when a default size is saved."
           },
           "fabric": {
             "type": "string",
@@ -358,8 +367,7 @@
           }
         },
         "required": [
-          "good_id",
-          "size"
+          "good_id"
         ]
       },
       "title": "Add to cart",
@@ -433,13 +441,13 @@
     },
     {
       "name": "get_order_status",
-      "description": "Look up the user's recent orders (or one by number) and their fulfilment status. Args: number?, limit? (default 5).",
+      "description": "Look up orders placed with the signed-in account's email — the latest ones, or one by its number — with status, total and a tracking page url. Use it for 'where is my order'; for an order not placed yet use get_order_preview. status is e.g. draft (unpaid, from prepare_order), pending_payment, paid, in_production, shipped, delivered or cancelled. number is the full order number such as AO-261023-1234; without it you get the newest orders first (limit default 5, max 20). Read-only: it can't cancel or change an order. An account with no email returns an empty list and a note.",
       "inputSchema": {
         "type": "object",
         "properties": {
           "number": {
             "type": "string",
-            "description": "Exact order number to look up; omit for the most recent orders."
+            "description": "Exact order number to look up, e.g. AO-261023-1234; omit for the most recent orders."
           },
           "limit": {
             "type": "integer",
@@ -495,7 +503,7 @@
     },
     {
       "name": "update_cart_item",
-      "description": "Change a cart line by its index (from view_cart): set qty (0 removes), or switch size/fabric. Args: index, qty?, size?, fabric?.",
+      "description": "Change one line already in the cart, addressed by its zero-based index from view_cart: set qty (0 removes the line; max 99) and/or switch size or fabric, which re-prices the line. Pass only what changes. After a removal the lines below move up one index, so re-read view_cart before the next edit. A bad index or an unavailable size/fabric returns an error (with the sizes on offer) and changes nothing. Returns the updated cart. To add a different product use add_to_cart.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -524,8 +532,8 @@
       "annotations": {
         "title": "Update cart line",
         "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
         "openWorldHint": false
       },
       "outputSchema": {
@@ -591,13 +599,13 @@
     },
     {
       "name": "apply_promo",
-      "description": "Validate and apply a promo code to the cart (server-checked). Returns the new discount/shipping/total, or applied=false with a reason. Args: code.",
+      "description": "Validate a promo code the human gave you and attach it to the cart. Returns applied=true with the new subtotal, discount, shipping and total, or applied=false with a reason — an invalid or expired code, or a bundle price in the cart that beats it (codes don't stack with bundle pricing). Codes are case-insensitive and a cart holds one: a valid new code replaces the current one, a rejected one leaves it in place; remove_promo just drops it. Needs at least one item in the cart. Never guess or try codes the human didn't give. The code is re-checked in get_order_preview and prepare_order.",
       "inputSchema": {
         "type": "object",
         "properties": {
           "code": {
             "type": "string",
-            "description": "Promo code to validate and apply."
+            "description": "Promo code exactly as the human gave it (case-insensitive)."
           }
         },
         "required": [
@@ -621,6 +629,10 @@
           "code": {
             "type": "string",
             "description": "Normalized promo code (when applied)."
+          },
+          "bundle": {
+            "type": "string",
+            "description": "Bundle price that beats the code (when applied=false for that reason)."
           },
           "subtotal": {
             "type": "number"
@@ -650,7 +662,7 @@
     },
     {
       "name": "remove_promo",
-      "description": "Remove the applied promo code from the cart.",
+      "description": "Drop the promo code from the cart, so totals go back to full price (a bundle price, if any, still applies). Use it when the human no longer wants the code; it isn't needed before apply_promo, which replaces the code anyway. Safe to repeat: with no code applied or an empty cart it does nothing and still returns applied=false.",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -704,17 +716,17 @@
     },
     {
       "name": "set_user_prefs",
-      "description": "Save the shopper's default size and/or fit so they don't re-enter it each time. Args: size (XS…5XL), fit (basic | oversized). Pass only what the user stated.",
+      "description": "Save the shopper's default size and/or fit on their allover.art account, so later chats can skip asking. Call it only when the human states a size or fit or asks you to remember one; read it back with get_user_prefs. Pass only what they stated: an omitted field keeps its saved value, an empty string clears it. size is XS, S, M, L, XL or 2XL–5XL (case-insensitive); fit is basic or oversized. The saved size fills in add_to_cart when size is omitted, and the fit maps to search_products style (basic → tee, oversized → oversized). Any other value returns an error and saves nothing.",
       "inputSchema": {
         "type": "object",
         "properties": {
           "size": {
             "type": "string",
-            "description": "Default size: XS, S, M, L, XL, 2XL…5XL."
+            "description": "Default size: XS, S, M, L, XL, 2XL…5XL; empty string clears it."
           },
           "fit": {
             "type": "string",
-            "description": "Fit preference: basic or oversized."
+            "description": "Fit preference: basic or oversized; empty string clears it."
           }
         }
       },
@@ -743,7 +755,7 @@
     },
     {
       "name": "get_saved_addresses",
-      "description": "Return shipping addresses the user used in past orders — offer these to a returning buyer instead of asking again.",
+      "description": "Return up to 5 distinct shipping addresses from the user's past orders (matched by the account email), newest first. For a returning buyer, call it before asking for an address, show the options, and pass the one they pick to set_shipping_address — this tool only reads and selects nothing. An empty list means no past orders: ask the human for the address.",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -795,7 +807,7 @@
     },
     {
       "name": "set_shipping_address",
-      "description": "Set the shipping address for this order (validated). Args: name, country, city, address, zip?, phone.",
+      "description": "Set the delivery address for the current cart's checkout; get_order_preview and prepare_order use it. Needs at least one item in the cart and replaces any address set before. For a returning buyer, offer get_saved_addresses first and pass the chosen one here. The phone is normalized to international form; if that fails the result carries a warning — ask the human for the number with its country code, since the courier calls it. Only the required fields and the phone are checked; the street itself is not verified. Missing fields or an empty cart return an error and save nothing. The country can switch the order to local currency (UZS for Uzbekistan).",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -805,7 +817,7 @@
           },
           "country": {
             "type": "string",
-            "description": "Destination country."
+            "description": "Destination country: name or 2-letter code, e.g. 'Australia' or 'AU'."
           },
           "city": {
             "type": "string",
@@ -813,15 +825,15 @@
           },
           "address": {
             "type": "string",
-            "description": "Street address line."
+            "description": "Street, house and apartment in one line."
           },
           "zip": {
             "type": "string",
-            "description": "Postal / ZIP code (optional where not used)."
+            "description": "Postal / ZIP code; omit where the country has none."
           },
           "phone": {
             "type": "string",
-            "description": "Contact phone number for delivery."
+            "description": "Recipient phone, ideally with country code, e.g. +61 412 462 423."
           }
         },
         "required": [
@@ -873,6 +885,10 @@
               }
             }
           },
+          "warning": {
+            "type": "string",
+            "description": "Phone could not be put in international form — ask the human for it with the country code."
+          },
           "error": {
             "type": "string",
             "description": "Missing fields or empty cart."
@@ -882,7 +898,7 @@
     },
     {
       "name": "get_shipping_options",
-      "description": "Available shipping methods for the current cart/address, with price and ETA (free over the threshold).",
+      "description": "List the shipping methods for the current cart with price, ETA and the free-shipping threshold. Today there is one: worldwide tracked shipping, 7–14 business days, free once the cart subtotal reaches free_shipping_from. Use it to answer 'how much / how long is shipping' or to tell the human how much more gets free shipping. Read-only and works on an empty cart too. Prices here are USD for the cart as it is; the final shipping amount, in the destination's currency, is in get_order_preview.",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -934,7 +950,7 @@
     },
     {
       "name": "set_shipping_method",
-      "description": "Choose a shipping method by its option_id (from get_shipping_options). Args: option_id.",
+      "description": "Select the shipping method for the current cart's checkout by an id from get_shipping_options. Only 'worldwide' exists today and it is already the default, so this call is optional — use it when the human explicitly picks a method, or once more methods appear. Needs at least one item in the cart; an unknown option_id returns an error and changes nothing. Repeating it is harmless.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -970,7 +986,7 @@
     },
     {
       "name": "get_order_preview",
-      "description": "Full order summary to show the human before ordering: line items, promo/discount, shipping, address, grand total. Prices are server-computed.",
+      "description": "Show the full order before checkout: re-priced lines, promo or bundle discount (they don't stack — the better one applies), shipping, the address from set_shipping_address, and the grand total in the order currency (local for some destinations, e.g. UZS for Uzbekistan). Call it once the address is set and show the result to the human for confirmation before prepare_order. Read-only and safe to repeat; prices come from the live catalog, not from the cart. ready_to_prepare stays false while the address is missing or a line is unavailable — fix what issues lists (update_cart_item, set_shipping_address) first. An empty cart returns an error.",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -1019,6 +1035,10 @@
           "promo_code": {
             "type": "string"
           },
+          "bundle": {
+            "type": "string",
+            "description": "Bundle price applied instead of the promo code, if any."
+          },
           "discount": {
             "type": "number"
           },
@@ -1066,7 +1086,7 @@
     },
     {
       "name": "prepare_order",
-      "description": "Create a draft order from the cart + address + promo and return {checkout_url, draft_id, expires_at}. The human opens checkout_url — everything is pre-filled — reviews and pays. The agent never pays. Call get_order_preview and confirm with the human first.",
+      "description": "Turn the cart, address and promo into a draft order and return {checkout_url, draft_id, expires_at}. Send checkout_url to the human: checkout opens pre-filled and they review and pay themselves — the agent never pays. Call it only after showing get_order_preview and getting the human's OK. Each call creates a NEW draft with its own number, so call it once per purchase; the cart itself is not emptied. The draft expires after 48 hours. Prices are re-checked; an empty cart, a missing address or no orderable items return an error (with issues) and create nothing.",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -1294,13 +1314,13 @@
     },
     {
       "name": "get_studio_status",
-      "description": "Check a custom print generation. Args: print_id (from generate_custom_print). When done returns preview_url — show it to the human.",
+      "description": "Poll a custom print started by generate_custom_print. status 'done' and 'failed' are final; anything else means still working — poll about every 30 seconds (generation takes 2–10 min) and don't start another generation meanwhile, since an account runs one at a time. When done it returns preview_url (the raw image: embed or attach it so the human sees the print) and design_url (the page to share); then offer add_custom_to_cart with the same print_id. 'failed' carries the reason, and its credits are refunded automatically. Read-only — polling costs nothing.",
       "inputSchema": {
         "type": "object",
         "properties": {
           "print_id": {
             "type": "string",
-            "description": "Generation id returned by generate_custom_print."
+            "description": "Generation id returned by generate_custom_print; the same id goes to add_custom_to_cart."
           }
         },
         "required": [
@@ -1348,7 +1368,7 @@
     },
     {
       "name": "get_studio_credits",
-      "description": "The user's Studio credit balance. Check before generate_custom_print (1 credit per generation, either engine; welcome bonus 20; every bought tee adds 20).",
+      "description": "Return the account owner's Studio credit balance; reading it spends nothing. Check it before generate_custom_print so you can tell the human the cost (1 credit per generation with either engine; preserve=true is free) and what will be left. No Studio account yet → balance 0 and studio_account=false; the first generation creates the account with 20 welcome credits. Every bought tee adds 20 credits, and more can be bought at allover.art/studio.",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -1386,7 +1406,7 @@
     },
     {
       "name": "add_custom_to_cart",
-      "description": "Put a FINISHED custom print into the cart as a product. Args: print_id (must be done), product? (same set as generate_custom_print), size, qty?. Then the normal checkout flow applies (get_order_preview -> prepare_order).",
+      "description": "Put a finished custom print (from generate_custom_print) into the cart as a garment and return the updated cart. Call it once get_studio_status reports done and the human has chosen product and size; for catalog designs use add_to_cart instead. product is the garment the human picked in get_studio_options (default mens_oversize_tshirt); size must exist for it — an error lists the sizes. Adding the same print on the same product and size again grows that line (max 99). An unfinished print returns 'print is not ready' and nothing is added. Then checkout goes as usual: set_shipping_address → get_order_preview → prepare_order.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1396,7 +1416,17 @@
           },
           "product": {
             "type": "string",
-            "description": "Studio product base, same set as generate_custom_print (default mens_oversize_tshirt)."
+            "enum": [
+              "kids_basic_tshirt_boy",
+              "kids_basic_tshirt_girl",
+              "kids_oversize_tshirt_boy",
+              "kids_oversize_tshirt_girl",
+              "mens_basic_tshirt",
+              "mens_oversize_tshirt",
+              "womens_basic_tshirt",
+              "womens_oversize_tshirt"
+            ],
+            "description": "Studio garment base, as chosen in get_studio_options (default mens_oversize_tshirt)."
           },
           "size": {
             "type": "string",

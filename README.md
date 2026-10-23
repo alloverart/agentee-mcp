@@ -45,7 +45,7 @@ Then ask your agent something like: *"find me a loud cotton tee with a cat under
 - Fill shipping address, pick delivery method
 - Prepare a fully pre-filled checkout — the human reviews and pays in the browser
 - Track orders after purchase
-- *Coming next:* create brand-new designs in Studio from a one-line prompt
+- Create a brand-new print in Studio from a one-line prompt (or print the human's own image as-is) and put it on a tee
 
 ## Tools
 
